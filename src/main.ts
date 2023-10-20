@@ -1,9 +1,8 @@
-import { NestFactory } from '@nestjs/core';
+import { Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { CommandFactory } from 'nest-commander';
 
 async function bootstrap() {
-  const app = await NestFactory.createApplicationContext(AppModule);
-  app.get(AppModule).run();
-  await app.close();
+  await CommandFactory.run(AppModule, new Logger());
 }
 bootstrap();
