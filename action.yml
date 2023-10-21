@@ -1,0 +1,41 @@
+name: Laravel Deploy
+author: Tzvi Melamed (TzviPM)
+description: Create on-demand preview environments for Laravel apps.
+branding:
+  icon: box
+  color: red
+inputs:
+  forge-token:
+    description: Laravel Forge API token.
+    required: true
+  envoyer-token:
+    description: Envoyer API token.
+    required: true
+  pscale-token-id:
+    description: PlanetScale token ID.
+    required: true
+  pscale-token:
+    description: PlanetScale token.
+    required: true
+  pscale-organization:
+    description: PlanetScale organization.
+    required: true
+  pscale-database:
+    description: PlanetScale database.
+    required: true
+  project:
+    description: Friendly name to prefix projects in Envoyer.
+    required: false
+  github-token:
+    description: GitHub token to create an authenticated Octokit client.
+    required: false
+    default: ${{ github.token }}
+  servers:
+    description: 'List of Forge servers to use for deploy previews. Each line must contain a domain name and a Forge server ID separated by a space. Note: currently only supports a single server.'
+    required: true
+  environment:
+    description: Environment variables to add or update on the preview site.
+    required: false
+runs:
+  using: node20
+  main: dist/index.js
