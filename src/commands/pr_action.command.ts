@@ -1,6 +1,5 @@
 import { Logger } from '@nestjs/common';
 import { CommandRunner, Command } from 'nest-commander';
-import { AppService } from 'src/app.service';
 import { ActionType, ContextService } from 'src/github/context/context.service';
 import { PrOpenedRunner } from './pr_closed.command';
 import { PrClosedRunner } from './pr_opened.command';

@@ -1,5 +1,4 @@
-import { Module, Logger } from '@nestjs/common';
-import { AppService } from './app.service';
+import { Module } from '@nestjs/common';
 import { PrActionRunner } from './commands/pr_action.command';
 import { GithubModule } from './github/github.module';
 import { ConfigModule } from '@nestjs/config';
@@ -8,6 +7,6 @@ import { PrClosedRunner } from './commands/pr_opened.command';
 
 @Module({
   imports: [ConfigModule.forRoot(), GithubModule],
-  providers: [AppService, PrActionRunner, PrOpenedRunner, PrClosedRunner],
+  providers: [PrActionRunner, PrOpenedRunner, PrClosedRunner],
 })
 export class AppModule {}
