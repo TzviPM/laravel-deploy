@@ -9,6 +9,9 @@ export class EnvContextService implements ContextService {
   getPullRequest(): PullRequest {
     const number = this.configService.getOrThrow('GITHUB_PR_NUMBER');
     const branchName = this.configService.getOrThrow('GITHUB_PR_BRANCH_NAME');
+    const baseBranchName = this.configService.getOrThrow(
+      'GITHUB_PR_BASE_BRANCH_NAME',
+    );
     const repoName = this.configService.getOrThrow('GITHUB_REPO_NAME');
     const repoOwner = this.configService.getOrThrow('GITHUB_REPO_OWNER');
     const repoFullName = this.configService.getOrThrow(
@@ -19,6 +22,7 @@ export class EnvContextService implements ContextService {
     return {
       number,
       branchName,
+      baseBranchName,
       repo: {
         name: repoName,
         owner: repoOwner,

@@ -11,6 +11,7 @@ export class GithubContextService implements ContextService {
     return {
       number: this.pr.number,
       branchName: this.pr.pull_request.head.ref,
+      baseBranchName: this.pr.pull_request.base.ref,
       repo: {
         name: this.pr.repository.name,
         owner: this.pr.repository.owner.login,

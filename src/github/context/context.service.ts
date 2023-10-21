@@ -14,6 +14,7 @@ export abstract class ContextService {
 
 export interface PullRequest {
   branchName: string;
+  baseBranchName: string;
   repo: {
     name: string;
     owner: string;

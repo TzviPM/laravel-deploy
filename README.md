@@ -1,73 +1,111 @@
+![](/banner.png)
+
+<h1 align="center">laravel-deploy</h1>
+
 <p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
+    <strong>A GitHub Action to create on-demand preview environments for Laravel apps.</strong>
 </p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
-
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
+<p align="center">
+    <a href="https://firstdonoharm.dev/version/3/0/bds-tal.html"><img src="https://img.shields.io/static/v1?label=Hippocratic%20License&message=HL3-BDS-TAL&labelColor=5e2751&color=bc8c3d" alt="Hippocratic License HL3-BDS-TAL"></a>
 </p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
-## Description
+## About
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+`TzviPM/laravel-deploy` is a GitHub Action to automatically deploy new Laravel app instances to Laravel Forge using Envoyer, including branching PlanetScale mysql databases. It's perfect for creating PR preview environments that are isolated, publicly accessible (or privately, depending on your server's settings), and closely resemble your production environment, to preview and test your changes.
 
-## Installation
+When you open a PR and this action runs for the first time, it will:
 
-```bash
-$ npm install
+- Create a new site on Forge with a unique subdomain.
+- Create a new project on Envoyer linked to the Forge site and install your Laravel app into it.
+- Create a new branch in PlanetScale for the site and configure your app to use it.
+- Create and install an SSL certificate and comment on your PR with a link to the site.
+- Set up a scheduled job in Forge to run your site's scheduler.
+- Enable push-to-deploy on the site so that it updates automatically when you push new code.
+
+## Requirements
+
+Before adding this action to your workflows, make sure you have:
+
+- A Laravel Forge [app server](https://forge.laravel.com/docs/1.0/servers/types.html#app-servers).
+- A [wildcard subdomain DNS record](https://en.wikipedia.org/wiki/Wildcard_DNS_record) pointing to your Forge server.
+- A Forge API token.
+- An Envoyer API token.
+- A PlanetScale database and Service token.
+
+## Usage
+
+> **Warning**: This action has direct access to your Laravel Forge, Envoyer, and PlanetScale accounts and should only be used in trusted contexts. Anyone who can push to a GitHub repository using this action will be able to execute code on the connected accounts and servers.
+
+Add your tokens as a [Actions Secrets](https://docs.github.com/en/actions/security-guides/encrypted-secrets#creating-encrypted-secrets-for-a-repository) in your GitHub repository. Then, use `TzviPM/laravel-deploy` inside any workflow.
+
+For the action to be able to clean up preview sites and other resources after a PR is merged, it has to be triggered on the pull request "closed" event. By default, GitHub's `pull_request` event does _not_ trigger a workflow run when its activity type is `closed`, so you may need to place this action in its own workflow file that specifies that event type:
+
+```yaml
+# deploy-preview.yml
+on:
+  pull_request:
+    types: [opened, closed]
+jobs:
+  deploy-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: TzviPM/laravel-deploy@v1
+        with:
+          forge-token: ${{ secrets.FORGE_TOKEN }}
+          envoyer-token: ${{ secrets.ENVOYER_TOKEN }}
+          pscale-token-id: ${{ secrets.PSCALE_TOKEN_ID }}
+          pscale-token: ${{ secrets.PSCALE_TOKEN }}
+          pscale-organization: myorg
+          pscale-database: abc_db
+          project: My Org Portal
+          environment: |
+            APP_NAME="My Org Portal"
+          servers: |
+            abc.myorg.com 60041
 ```
 
-## Running the app
+### Inputs
 
-```bash
-# development
-$ npm run start
+#### `forge-token` (required)
 
-# watch mode
-$ npm run start:dev
+The `forge-token` input parameter accepts your Forge API token, which the action uses to communicate with Laravel Forge to create sites and other resources. **Store this value in an encrypted secret; do not paste it directly into your workflow file.**
 
-# production mode
-$ npm run start:prod
-```
+#### `envoyer-token` (required)
 
-## Test
+The `envoyer-token` input parameter accepts your Envoyer API token, which the action uses to communicate with Envoyer to create projects and other resources. **Store this value in an encrypted secret; do not paste it directly into your workflow file.**
 
-```bash
-# unit tests
-$ npm run test
+#### `project`
 
-# e2e tests
-$ npm run test:e2e
+The `project` input parameter allows you to specify a friendly name to prefix projects in Envoyer. If not specified, a project name will be auto-generated based on the name of the repository.
 
-# test coverage
-$ npm run test:cov
-```
+#### `pscale-token-id` and `pscale-token` (required)
 
-## Support
+The `pscale-token-id` and `pscale-token` input parameters accept your PlanetScale Service API token and id, which the action uses to communicate with PlanetScale to create database branches and other resources. **Store this value in an encrypted secret; do not paste it directly into your workflow file.**
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+#### `pscale-organization` and `pscale-database` (required)
 
-## Stay in touch
+The `pscale-organization` and `pscale-database` input parameters accept your PlanetScale organization and database IDs, which the action uses to identify the corresponding resources in PlanetScale. **Make sure your API token has been granted access to these resources.**
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+#### `servers` (required)
 
-## License
+The `servers` input parameter accepts a list of Forge servers to deploy to.
 
-Nest is [MIT licensed](LICENSE).
+Each server must include both a domain name and a server ID, separated by a space. The domain name should be the wildcard subdomain pointing at that server (without the wildcard part). For example, if your wildcard subdomain is `*.abc.myorg.com` and your Forge server ID is `60041`, set this input parameter to `abc.myorg.com 60041`.
+
+If this input parameter contains multiple lines, each line will be treated as a different Forge server. The action currently only deploys to one server; if you list multiple servers, it will use the first one.
+
+#### `environment`
+
+The `environment` input parameter allows you to add and update environment variables in the preview site.
+
+## Development
+
+This action is based on [Jacob Baker-Kretzmar (bakerkretzmar)]([bakerkretzmar](https://github.com/bakerkretzmar))'s [laravel-deploy-preview](https://github.com/bakerkretzmar/laravel-deploy-preview) action. It's written in TypeScript using NestJS and compiled with [`ncc`](https://github.com/vercel/ncc) into a single JavaScript file.
+
+Run `npm run build` to compile a new version of the action for distribution.
+
+To run the action locally, create a `.env` file and add your API tokens to it, then run `npm run start`.
+
+When releasing a new version of the action, update the major version tag to point to the same commit as the latest patch release. This is what allows users to use `TzviPM/laravel-deploy@v1` in their workflows instead of `TzviPM/laravel-deploy@v1.0.2`. For example, after tagging and releasing `v1.0.2`, delete the `v1` tag locally, create it again pointing to the same commit as `v1.0.2`, and force push your tags with `git push -f --tags`.
