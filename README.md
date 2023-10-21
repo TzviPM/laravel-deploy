@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-    <a href="https://firstdonoharm.dev/version/3/0/bds-tal.html"><img src="https://img.shields.io/static/v1?label=Hippocratic%20License&message=HL3-BDS-TAL&labelColor=5e2751&color=bc8c3d" alt="Hippocratic License HL3-BDS-TAL"></a>
+    <a href="https://github.com/TzviPM/laravel-deploy/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-darkcyan.svg" alt="MIT License"></a>
 </p>
 
 ## About
