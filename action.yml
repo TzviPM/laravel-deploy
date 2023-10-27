@@ -26,6 +26,9 @@ inputs:
   project:
     description: Friendly name to prefix projects in Envoyer.
     required: false
+  php-version:
+    description: The php version to use for the envoyer server.
+    required: true
   github-token:
     description: GitHub token to create an authenticated Octokit client.
     required: false
