@@ -9,6 +9,7 @@ export class GithubLogger extends Logger {
   private getLogger(name: string, log: (message: string) => void) {
     return new tslog.Logger({
       type: 'pretty',
+      minLevel: 0,
       name,
       overwrite: {
         transportFormatted(logMetaMarkup, logArgs, logErrors, settings) {
