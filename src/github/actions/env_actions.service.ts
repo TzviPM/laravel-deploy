@@ -18,7 +18,7 @@ export class EnvActionsService implements ActionsService {
   public getInput(name: string, options?: InputOptions): string {
     const envVariableName = this.constantCase(name);
     return this.configService
-      .getOrThrow<string>(envVariableName, options.required ? undefined : '')
+      .getOrThrow<string>(envVariableName, options?.required ? undefined : '')
       .trim();
   }
 

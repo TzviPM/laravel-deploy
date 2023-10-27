@@ -60,6 +60,7 @@ jobs:
           pscale-organization: myorg
           pscale-database: abc_db
           project: My Org Portal
+          php-version: php81
           environment: |
             APP_NAME="My Org Portal"
           servers: |
@@ -79,6 +80,21 @@ The `envoyer-token` input parameter accepts your Envoyer API token, which the ac
 #### `project`
 
 The `project` input parameter allows you to specify a friendly name to prefix projects in Envoyer. If not specified, a project name will be auto-generated based on the name of the repository.
+
+#### `php-version`
+
+The php version to use for the envoyer server. PHP Versions:
+
+| Version | Slug  |
+|---------|-------|
+| PHP 8.1 |	php81 |
+| PHP 8.0 |	php80 |
+| PHP 7.4 |	php74 |
+| PHP 7.3 |	php73 |
+| PHP 7.2 |	php72 |
+| PHP 7.1 |	php71 |
+| PHP 7.0 |	php70 |
+| PHP 5.6 |	php56 |
 
 #### `pscale-token-id` and `pscale-token` (required)
 

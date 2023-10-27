@@ -15,7 +15,7 @@ export class Database {
   public name: string;
 
   public get path() {
-    return `${this.organization.path}/databases/${this.id}`;
+    return `${this.organization.path}/databases/${this.name}`;
   }
 
   constructor(
@@ -27,19 +27,15 @@ export class Database {
     this.name = data.name;
   }
 
-  listBranches(): Observable<Branch[]> {
+  listBranches(): Promise<Branch[]> {
     return this.pscaleService.listBranches(this);
   }
 
-  getBranch(name: string): Observable<Branch> {
+  getBranch(name: string): Promise<Branch> {
     return this.pscaleService.getBranch(this, name);
   }
 
-  createBranch(
-    parent: Branch,
-    name: string,
-    backup?: Backup,
-  ): Observable<Branch> {
+  createBranch(parent: Branch, name: string, backup?: Backup): Promise<Branch> {
     return this.pscaleService.createBranch(this, parent, name, backup);
   }
 }

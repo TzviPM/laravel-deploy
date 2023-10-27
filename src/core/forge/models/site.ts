@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { Server } from './server';
+import { ForgeService } from '../forge.service';
+import { Certificate } from './certificate';
 
 export const siteSchema = z.object({
   id: z.number(),
@@ -17,6 +19,7 @@ export class Site {
   public directory: string;
 
   constructor(
+    private readonly forgeService: ForgeService,
     public readonly server: Server,
     data: z.infer<typeof siteSchema>,
   ) {
@@ -25,5 +28,21 @@ export class Site {
     this.status = data.status;
     this.username = data.username;
     this.directory = data.directory;
+  }
+
+  get apiPath(): string {
+    return `${this.server.apiPath}/sites/${this.id}`;
+  }
+
+  listCerts(): Promise<Certificate[]> {
+    return this.forgeService.listCerts(this);
+  }
+
+  getCert(id: string): Promise<Certificate> {
+    return this.forgeService.getCert(this, id);
+  }
+
+  createLetsEncryptCert(): Promise<Certificate> {
+    return this.forgeService.createLetsEncryptCert(this);
   }
 }

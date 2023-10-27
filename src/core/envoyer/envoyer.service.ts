@@ -2,13 +2,21 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
 import { PreviewConfigService } from '../preview_config/preview_config.service';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
-import { Observable, ignoreElements, map, mergeMap, pluck } from 'rxjs';
+import {
+  Observable,
+  firstValueFrom,
+  ignoreElements,
+  map,
+  mergeMap,
+  pluck,
+} from 'rxjs';
 import { z } from 'zod';
 import { Project, projectSchema } from './models/project';
 import { ContextService } from 'src/github/context/context.service';
 import { v5 as uuidv5 } from 'uuid';
 import { Server, serverSchema } from './models/server';
 import { Site } from '../forge/models/site';
+import { ErrorHandler } from 'src/errors/handler';
 
 export const projectsResponseSchema = z.object({
   projects: z.array(projectSchema),
@@ -57,106 +65,116 @@ export class EnvoyerService {
     };
   }
 
-  private get(path: string): Observable<AxiosResponse<unknown, any>> {
-    return this.httpService.get(this.apiUrl(path), this.config());
-  }
-
-  private post(
-    path: string,
-    data: {},
-  ): Observable<AxiosResponse<unknown, any>> {
-    return this.httpService.post(this.apiUrl(path), data, this.config());
-  }
-
-  private put(path: string, data: {}): Observable<AxiosResponse<unknown, any>> {
-    return this.httpService.put(this.apiUrl(path), data, this.config());
-  }
-
-  private delete(
-    path: string,
-    data: {},
-  ): Observable<AxiosResponse<unknown, any>> {
-    return this.httpService.post(this.apiUrl(path), data, {
-      ...this.config(),
-      method: 'DELETE',
-    });
-  }
-
-  public listProjects(): Observable<Project[]> {
-    return this.get(`projects`).pipe(
-      map((s) => projectsResponseSchema.parse(s?.data)),
-      map((s) => s.projects.map((project) => new Project(this, project))),
+  private async get(path: string): Promise<AxiosResponse<unknown, any>> {
+    this.logger.debug(`GET ${this.apiUrl(path)}`);
+    return firstValueFrom(
+      this.httpService.get(this.apiUrl(path), this.config()),
     );
   }
 
-  public createProject(name: string, domain: string): Observable<Project> {
-    const pr = this.contextService.getPullRequest();
+  private async post(
+    path: string,
+    data: {},
+  ): Promise<AxiosResponse<unknown, any>> {
+    this.logger.debug(`POST ${this.apiUrl(path)} ${JSON.stringify(data)}`);
+    return firstValueFrom(
+      this.httpService.post(this.apiUrl(path), data, this.config()),
+    );
+  }
 
-    return this.post(`projects`, {
+  private async put(
+    path: string,
+    data: {},
+  ): Promise<AxiosResponse<unknown, any>> {
+    this.logger.debug(`PUT ${this.apiUrl(path)} ${JSON.stringify(data)}`);
+    return firstValueFrom(
+      this.httpService.put(this.apiUrl(path), data, this.config()),
+    );
+  }
+
+  private async delete(
+    path: string,
+    data: {},
+  ): Promise<AxiosResponse<unknown, any>> {
+    this.logger.debug(`DELETE ${this.apiUrl(path)} ${JSON.stringify(data)}`);
+    return firstValueFrom(
+      this.httpService.delete(this.apiUrl(path), {
+        ...this.config(),
+        data,
+      }),
+    );
+  }
+
+  public async listProjects(): Promise<Project[]> {
+    const raw = await this.get(`projects`);
+    const res = projectsResponseSchema.parse(raw?.data);
+    return res.projects.map((project) => new Project(this, project));
+  }
+
+  public async createProject(name: string, domain: string): Promise<Project> {
+    const pr = this.contextService.getPullRequest();
+    const raw = await this.post(`projects`, {
       name,
       provider: 'github',
       repository: pr.repo.fullName,
       branch: pr.branchName,
       type: 'laravel-5',
       retain_deployments: 5,
-      monitor: domain,
+      monitor: `https://${domain}`,
       composer: true,
       composer_dev: false,
       composer_quiet: false,
       push_to_deploy: true,
-    }).pipe(
-      map((s) => projectResponseSchema.parse(s?.data)),
-      map((s) => new Project(this, s.project)),
-    );
+    });
+    const res = projectResponseSchema.parse(raw?.data);
+    return new Project(this, res.project);
   }
 
-  public deployProject(projectId: number, branch: string): Observable<void> {
-    return this.post(`projects/${projectId}/deployments`, {
+  public async deployProject(projectId: number, branch: string): Promise<void> {
+    await this.post(`projects/${projectId}/deployments`, {
       from: 'branch',
       branch,
-    }).pipe(ignoreElements());
+    });
   }
 
-  public listServers(project: Project): Observable<Server[]> {
-    return this.get(`projects/${project.id}/servers`).pipe(
-      map((s) => serversResponseSchema.parse(s?.data)),
-      map((s) => s.servers.map((server) => new Server(this, project, server))),
-    );
+  public async listServers(project: Project): Promise<Server[]> {
+    const raw = await this.get(`projects/${project.id}/servers`);
+    const res = serversResponseSchema.parse(raw?.data);
+    return res.servers.map((server) => new Server(this, project, server));
   }
 
-  public createServer(
+  public async createServer(
     project: Project,
     name: string,
     site: Site,
-  ): Observable<Server> {
-    return this.post(`projects/${project.id}/servers`, {
+    phpVersion: string,
+  ): Promise<Server> {
+    const raw = await this.post(`projects/${project.id}/servers`, {
       name,
       connectAs: site.username,
       host: site.server.ipAddress,
       port: 22,
       receivesCodeDeployments: true,
       deploymentPath: `/home/${site.username}/${site.name}`,
-    }).pipe(
-      map((s) => serverResponseSchema.parse(s?.data)),
-      map((s) => new Server(this, project, s.server)),
-    );
+      phpVersion,
+    });
+    const res = serverResponseSchema.parse(raw?.data);
+    return new Server(this, project, res.server);
   }
 
-  public pushEnvironment(
+  public async pushEnvironment(
     projectId: number,
     serverId: number,
     contents: string,
-  ): Observable<void> {
+  ): Promise<void> {
     const key = uuidv5(EnvoyerService.repoUrl, uuidv5.URL);
-    return this.delete(`projects/${projectId}/environment`, { key }).pipe(
-      mergeMap(() => {
-        return this.put(`projects/${projectId}/environment`, {
-          key,
-          contents,
-          servers: [serverId],
-        });
-      }),
-      ignoreElements(),
-    );
+    await this.delete(`projects/${projectId}/environment`, {
+      key,
+    });
+    await this.put(`projects/${projectId}/environment`, {
+      key,
+      contents,
+      servers: [serverId],
+    });
   }
 }

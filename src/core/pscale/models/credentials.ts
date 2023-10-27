@@ -5,8 +5,8 @@ import { Branch } from './branch';
 export const credentialsSchema = z.object({
   id: z.string(),
   name: z.string(),
-  username: z.string(),
-  plain_text: z.string(),
+  username: z.string().optional().nullable(),
+  plain_text: z.string().optional().nullable(),
 });
 
 export class Credentials {

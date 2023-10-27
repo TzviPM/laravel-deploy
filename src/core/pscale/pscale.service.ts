@@ -2,7 +2,7 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
 import { PreviewConfigService } from '../preview_config/preview_config.service';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
-import { Observable, map } from 'rxjs';
+import { firstValueFrom, map } from 'rxjs';
 import { z } from 'zod';
 import { Organization, organizationSchema } from './models/organization';
 import { Database, databaseSchema } from './models/database';
@@ -34,6 +34,10 @@ export const backupsResponseSchema = z.object({
 
 export const backupResponseSchema = backupSchema;
 
+export const credentialsResponseSchema = z.object({
+  data: z.array(credentialsSchema),
+});
+
 export const credentialResponseSchema = credentialsSchema;
 
 @Injectable()
@@ -62,106 +66,125 @@ export class PlanetScaleService {
     return {
       headers: {
         Authorization: `${this.tokenId}:${this.token}`,
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
+        accept: 'application/json',
+        'content-type': 'application/json',
       },
     };
   }
 
-  private get(path: string): Observable<AxiosResponse<unknown, any>> {
-    return this.httpService.get(this.apiUrl(path), this.config());
+  private async get(path: string): Promise<AxiosResponse<unknown, any>> {
+    this.logger.debug(`GET ${this.apiUrl(path)}`);
+    return firstValueFrom(
+      this.httpService.get(this.apiUrl(path), this.config()),
+    );
   }
 
-  private post(
+  private async post(
     path: string,
     data: {},
-  ): Observable<AxiosResponse<unknown, any>> {
-    return this.httpService.post(this.apiUrl(path), data, this.config());
-  }
-
-  public listOrganizations(): Observable<Organization[]> {
-    return this.get('organizations').pipe(
-      map((data) => organizationsResponseSchema.parse(data)),
-      map(({ data }) => data.map((org) => new Organization(this, org))),
+  ): Promise<AxiosResponse<unknown, any>> {
+    this.logger.debug(`POST ${this.apiUrl(path)} ${JSON.stringify(data)}`);
+    return firstValueFrom(
+      this.httpService.post(this.apiUrl(path), data, this.config()),
     );
   }
 
-  public getOrganization(id: string): Observable<Organization> {
-    return this.get(`organizations/${id}`).pipe(
-      map((data) => organizationResponseSchema.parse(data)),
-      map((data) => new Organization(this, data)),
+  private async delete(path: string): Promise<AxiosResponse<unknown, any>> {
+    this.logger.debug(`DELETE ${this.apiUrl(path)}`);
+    return firstValueFrom(
+      this.httpService.delete(this.apiUrl(path), this.config()),
     );
   }
 
-  public listDatabases(org: Organization): Observable<Database[]> {
-    return this.get(`${org.path}/databases`).pipe(
-      map((data) => databasesResponseSchema.parse(data)),
-      map(({ data }) => data.map((db) => new Database(this, org, db))),
-    );
+  public async listOrganizations(): Promise<Organization[]> {
+    const raw = await this.get('organizations');
+    const res = organizationsResponseSchema.parse(raw?.data);
+    return res.data.map((org) => new Organization(this, org));
   }
 
-  public getDatabase(org: Organization, id: string): Observable<Database> {
-    return this.get(`${org.path}/databases/${id}`).pipe(
-      map((data) => databaseResponseSchema.parse(data)),
-      map((data) => new Database(this, org, data)),
-    );
+  public async getOrganization(id: string): Promise<Organization> {
+    const raw = await this.get(`organizations/${id}`);
+    const res = organizationResponseSchema.parse(raw?.data);
+    return new Organization(this, res);
   }
 
-  public listBranches(db: Database): Observable<Branch[]> {
-    return this.get(`${db.path}/branches`).pipe(
-      map((data) => branchesResponseSchema.parse(data)),
-      map(({ data }) => data.map((branch) => new Branch(this, db, branch))),
-    );
+  public async listDatabases(org: Organization): Promise<Database[]> {
+    const raw = await this.get(`${org.path}/databases`);
+    const res = databasesResponseSchema.parse(raw?.data);
+    return res.data.map((db) => new Database(this, org, db));
   }
 
-  public getBranch(db: Database, name: string): Observable<Branch> {
-    return this.get(`${db.path}/branches/${name}`).pipe(
-      map((data) => branchResponseSchema.parse(data)),
-      map((data) => new Branch(this, db, data)),
-    );
+  public async getDatabase(org: Organization, id: string): Promise<Database> {
+    const raw = await this.get(`${org.path}/databases/${id}`);
+    const res = databaseResponseSchema.parse(raw?.data);
+    return new Database(this, org, res);
   }
 
-  public createBranch(
+  public async listBranches(db: Database): Promise<Branch[]> {
+    const raw = await this.get(`${db.path}/branches`);
+    const res = branchesResponseSchema.parse(raw?.data);
+    return res.data.map((branch) => new Branch(this, db, branch));
+  }
+
+  public async getBranch(db: Database, name: string): Promise<Branch> {
+    const raw = await this.get(`${db.path}/branches/${name}`);
+    const res = branchResponseSchema.parse(raw?.data);
+    return new Branch(this, db, res);
+  }
+
+  public async createBranch(
     db: Database,
     parent: Branch,
     name: string,
     backup?: Backup,
-  ): Observable<Branch> {
-    return this.post(`${db.path}/branches`, {
+  ): Promise<Branch> {
+    const raw = await this.post(`${db.path}/branches`, {
       name,
       parent_branch: parent.name,
       backup_id: backup?.id,
-    }).pipe(
-      map((data) => branchResponseSchema.parse(data)),
-      map((data) => new Branch(this, db, data)),
-    );
+    });
+    const res = branchResponseSchema.parse(raw?.data);
+    return new Branch(this, db, res);
   }
 
-  public listBackups(branch: Branch): Observable<Backup[]> {
-    return this.get(`${branch.path}/backups`).pipe(
-      map((data) => backupsResponseSchema.parse(data)),
-      map(({ data }) => data.map((backup) => new Backup(this, branch, backup))),
-    );
+  public async listBackups(branch: Branch): Promise<Backup[]> {
+    const raw = await this.get(`${branch.path}/backups`);
+    const res = backupsResponseSchema.parse(raw?.data);
+    return res.data.map((backup) => new Backup(this, branch, backup));
   }
 
-  public createBackup(branch: Branch, name: string): Observable<Backup> {
-    return this.post(`${branch.path}/backups`, {
+  public async createBackup(branch: Branch, name: string): Promise<Backup> {
+    const raw = await this.post(`${branch.path}/backups`, {
       name,
-    }).pipe(
-      map((data) => backupResponseSchema.parse(data)),
-      map((data) => new Backup(this, branch, data)),
+    });
+    const res = backupResponseSchema.parse(raw?.data);
+    return new Backup(this, branch, res);
+  }
+
+  public async listCredentials(branch: Branch): Promise<Credentials[]> {
+    const raw = await this.get(`${branch.path}/passwords`);
+    const res = credentialsResponseSchema.parse(raw?.data);
+    return res.data.map(
+      (credential) => new Credentials(this, branch, credential),
     );
   }
 
-  public createCredentials(
+  public async createCredentials(
     branch: Branch,
     name: string,
-  ): Observable<Credentials> {
-    return this.post(`${branch.path}/passwords`, {
+  ): Promise<Credentials> {
+    const raw = await this.post(`${branch.path}/passwords`, {
       name,
-    }).pipe(
-      map((data) => credentialResponseSchema.parse(data)),
-      map((data) => new Credentials(this, branch, data)),
-    );
+    });
+    const res = credentialResponseSchema.parse(raw?.data);
+    return new Credentials(this, branch, res);
+  }
+
+  public async updateCredentials(
+    branch: Branch,
+    credentials: Credentials,
+  ): Promise<Credentials> {
+    await this.delete(`${credentials.path}`);
+    return this.createCredentials(branch, credentials.name);
   }
 }

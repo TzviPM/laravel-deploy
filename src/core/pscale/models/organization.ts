@@ -13,7 +13,7 @@ export class Organization {
   public name: string;
 
   public get path() {
-    return `organizations/${this.id}`;
+    return `organizations/${this.name}`;
   }
 
   constructor(
@@ -24,11 +24,11 @@ export class Organization {
     this.name = data.name;
   }
 
-  listDatabases(): Observable<Database[]> {
+  listDatabases(): Promise<Database[]> {
     return this.pscaleService.listDatabases(this);
   }
 
-  getDatabase(id: string): Observable<Database> {
+  getDatabase(id: string): Promise<Database> {
     return this.pscaleService.getDatabase(this, id);
   }
 }

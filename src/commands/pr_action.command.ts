@@ -26,7 +26,7 @@ export class PrActionRunner extends CommandRunner {
   async run() {
     switch (this.contextService.getActionType()) {
       case ActionType.Opened:
-        return this.openedCommand.run();
+        return await this.openedCommand.run();
       case ActionType.Closed:
         return this.closedCommand.run();
       default:

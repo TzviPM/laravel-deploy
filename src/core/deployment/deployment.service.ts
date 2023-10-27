@@ -1,27 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PreviewConfigService } from '../preview_config/preview_config.service';
 import { ForgeService } from '../forge/forge.service';
-import {
-  filter,
-  firstValueFrom,
-  merge,
-  map,
-  mergeMap,
-  zip,
-  Observable,
-} from 'rxjs';
+import dedent from 'dedent';
 import { ContextService } from 'src/github/context/context.service';
 import { EnvoyerService } from '../envoyer/envoyer.service';
-import { Server as ForgeServer } from '../forge/models/server';
 import { Site } from '../forge/models/site';
-import { Project } from '../envoyer/models/project';
-import { Server as EnvoyerServer } from '../envoyer/models/server';
 import { Database } from '../pscale/models/database';
 import { PlanetScaleService } from '../pscale/pscale.service';
-import { string } from 'zod';
-import { Branch } from '../pscale/models/branch';
-import { Backup } from '../pscale/models/backup';
 import { Credentials } from '../pscale/models/credentials';
+import * as crypto from 'node:crypto';
 
 @Injectable()
 export class DeploymentService {
@@ -35,187 +22,6 @@ export class DeploymentService {
     private readonly pscaleService: PlanetScaleService,
   ) {}
 
-  private forgeServer$(id: number): Observable<ForgeServer> {
-    this.logger.debug(`loading server with ID ${id}`);
-
-    return this.forgeService.getServer(id);
-  }
-
-  private site$(
-    forgeServer$: Observable<ForgeServer>,
-    siteName: string,
-  ): Observable<Site> {
-    const maybeSite$ = forgeServer$.pipe(
-      mergeMap((server) => {
-        this.logger.debug(`loading sites for server ${server.id}`);
-        return server.loadSites();
-      }),
-      map((sites) => {
-        this.logger.debug(`Checking for site named ${siteName}`);
-        return sites.find((site) => site.name === siteName);
-      }),
-    );
-
-    const existingSite$ = maybeSite$.pipe(
-      filter((site) => !!site),
-      map((site) => {
-        this.logger.debug(`site exists`);
-        return site;
-      }),
-    );
-
-    const noSite$ = maybeSite$.pipe(filter((site) => !site));
-
-    const newSite$ = zip(forgeServer$, noSite$).pipe(
-      map(([server, _]) => server),
-      mergeMap((server) => {
-        const databaseName = siteName.replace(/-/g, '_').replace(/[^\w_]/g, '');
-        this.logger.debug(`Sanitized database name: '${databaseName}'`);
-
-        this.logger.log(`Creating site ${siteName}`);
-        return server.createSite(siteName, databaseName);
-      }),
-    );
-
-    return merge(existingSite$, newSite$);
-  }
-
-  private project$(name: string, siteName: string): Observable<Project> {
-    this.logger.debug(`loading projects from Envoyer`);
-
-    const maybeProject$ = this.envoyerService.listProjects().pipe(
-      map((projects) => {
-        this.logger.debug(`Checking for project named "${name}"`);
-        return projects.find((project) => project.name === name);
-      }),
-    );
-
-    const existingProject$ = maybeProject$.pipe(
-      filter((project) => !!project),
-      map((project) => {
-        this.logger.debug(`project exists`);
-        return project;
-      }),
-    );
-
-    const newProject$ = maybeProject$.pipe(
-      filter((project) => !project),
-      mergeMap(() => {
-        this.logger.log(`Creating project ${name}`);
-        return this.envoyerService.createProject(name, siteName);
-      }),
-    );
-
-    return merge(existingProject$, newProject$);
-  }
-
-  private envoyerServer$(
-    project$: Observable<Project>,
-    server$: Observable<ForgeServer>,
-    site$: Observable<Site>,
-  ): Observable<EnvoyerServer> {
-    const envoyerServers$ = project$.pipe(
-      mergeMap((project) => {
-        this.logger.debug(`loading servers for project ${project.id}`);
-        return project.listServers();
-      }),
-    );
-
-    const maybeEnvoyerServer$ = zip(envoyerServers$, server$).pipe(
-      map(([servers, forgeServer]) => {
-        this.logger.debug(
-          `Checking for envoyer server with IP ${forgeServer.ipAddress}`,
-        );
-        return servers.find(
-          (server) => server.ipAddress === forgeServer.ipAddress,
-        );
-      }),
-    );
-
-    const existingEnvoyerServer$ = maybeEnvoyerServer$.pipe(
-      filter((server) => !!server),
-      map((server) => {
-        this.logger.debug(`envoyer server exists`);
-        return server;
-      }),
-    );
-
-    const newEnvoyerServer$ = maybeEnvoyerServer$.pipe(
-      filter((server) => !server),
-      mergeMap(() => {
-        this.logger.log(`Creating server in Envoyer`);
-        return zip(project$, site$).pipe(
-          mergeMap(([project, site]) => {
-            return project.createServer('preview', site);
-          }),
-        );
-      }),
-    );
-
-    return merge(existingEnvoyerServer$, newEnvoyerServer$);
-  }
-
-  private database$(): Observable<Database> {
-    this.logger.debug(`loading database from PlanetScale`);
-
-    const orgId = this.configService.getPScaleOrganization();
-    const dbId = this.configService.getPScaleDatabase();
-
-    return this.pscaleService
-      .getOrganization(orgId)
-      .pipe(mergeMap((org) => org.getDatabase(dbId)));
-  }
-
-  private baseBranch$(
-    database$: Observable<Database>,
-    baseDbBranch: string,
-  ): Observable<Branch> {
-    return database$.pipe(
-      mergeMap((db) => {
-        this.logger.debug(`Getting base branch ${baseDbBranch}`);
-        return db.getBranch(baseDbBranch);
-      }),
-    );
-  }
-
-  private branch$(
-    baseBranch$: Observable<Branch>,
-    name: string,
-    backup$: Observable<Backup>,
-  ): Observable<Branch> {
-    return zip(baseBranch$, backup$).pipe(
-      mergeMap(([baseBranch, backup]) => {
-        this.logger.debug(
-          `Creating new branch ${name} from ${baseBranch.name} using backup ${backup.name}`,
-        );
-        return baseBranch.forkBranch(name, backup);
-      }),
-    );
-  }
-
-  private dbCreds$(branch$: Observable<Branch>) {
-    return branch$.pipe(
-      mergeMap((branch) => {
-        this.logger.debug(`Generating credentials for ${branch.name}`);
-        return branch.createCredentials('preview');
-      }),
-    );
-  }
-
-  private backup$(
-    baseBranch$: Observable<Branch>,
-    name: string,
-  ): Observable<Backup> {
-    return baseBranch$.pipe(
-      mergeMap((branch) => {
-        this.logger.debug(
-          `Creating a backup (${name}) of branch ${branch.name}`,
-        );
-        return branch.createBackup(name);
-      }),
-    );
-  }
-
   private createEnv(
     baseEnv: string,
     site: Site,
@@ -224,8 +30,9 @@ export class DeploymentService {
   ) {
     this.logger.debug(`Creating an environment for ${site.name}`);
 
-    return `${baseEnv}
+    return dedent`${baseEnv}
     APP_URL=${site.name}
+    APP_KEY=base64:${crypto.randomBytes(32).toString('base64')}
     
     DB_CONNECTION=mysql
     DB_HOST=aws.connect.psdb.cloud
@@ -246,49 +53,122 @@ export class DeploymentService {
     const baseProjectName =
       this.configService.getProjectName() || titleCase(pr.repo.name);
     const projectName = `${baseProjectName} Preview - ${titleCase(branchName)}`;
+    const phpVersion = this.configService.getPhpVersion();
 
-    const baseDbBranch = dbBranchName(pr.repo.name, pr.baseBranchName);
-    const dbBranch = dbBranchName(pr.repo.name, branchName);
+    const baseDbBranch = dbBranchName(pr.baseBranchName);
+    const dbBranch = dbBranchName(branchName);
     const dbBackupName = baseDbBranch + '__' + dbBranch;
 
     // Forge
-    const server$ = this.forgeServer$(serverId);
-    const site$ = this.site$(server$, siteName);
+    this.logger.debug(`loading server with ID ${serverId}`);
+    const server = await this.forgeService.getServer(serverId);
+
+    this.logger.debug(`loading sites for server ${server.id}`);
+    const sites = await server.loadSites();
+    this.logger.debug(`Checking for site named ${siteName}`);
+    let site = sites.find((site) => site.name === siteName);
+    if (site != null) {
+      this.logger.debug(`site exists`);
+    } else {
+      const databaseName = siteName.replace(/-/g, '_').replace(/[^\w_]/g, '');
+      this.logger.debug(`Sanitized database name: '${databaseName}'`);
+
+      this.logger.log(`Creating site ${siteName}`);
+      site = await server.createSite(siteName, databaseName);
+    }
+    this.logger.debug(`Checking for SSL Certificate on forge`);
+    const certs = await site.listCerts();
+    let cert = certs.find((cert) => cert.domain === site.name);
+    if (cert != null) {
+      this.logger.debug('cert exists');
+    } else {
+      this.logger.log(`Creating certificate with LetsEncrypt`);
+      cert = await site.createLetsEncryptCert();
+    }
+    await cert.waitUntilReady();
 
     // PlanetScale
-    const database$ = this.database$();
-    const baseBranch$ = this.baseBranch$(database$, baseDbBranch);
-    const backup$ = this.backup$(baseBranch$, dbBackupName);
-    const branch$ = this.branch$(baseBranch$, dbBranch, backup$);
-    const dbCreds$ = this.dbCreds$(branch$);
+    this.logger.debug(`loading database info for PlanetScale`);
+    const orgName = this.configService.getPScaleOrganization();
+    const dbName = this.configService.getPScaleDatabase();
+
+    this.logger.debug(`loading organization "${orgName}" from PlanetScale`);
+    const org = await this.pscaleService.getOrganization(orgName);
+    this.logger.debug(
+      `getting database "${dbName}" for organization "${orgName}"`,
+    );
+    const database = await org.getDatabase(dbName);
+
+    this.logger.debug(`Getting base branch "${baseDbBranch}"`);
+    const baseBranch = await database.getBranch(baseDbBranch);
+    this.logger.debug(
+      `Creating backup "${dbBackupName}" of branch "${baseDbBranch}"`,
+    );
+    const backup = await baseBranch.ensureBackup(dbBackupName);
+    this.logger.debug(
+      `Forking branch "${dbBranch}" from base branch "${baseDbBranch}"`,
+    );
+    const branch = await baseBranch.ensureForkBranch(dbBranch, backup);
+    this.logger.debug(
+      `Generating credentials named "preview" for branch "${dbBranch}"`,
+    );
+    const dbCreds = await branch.forceCreateCredentials('preview');
 
     // Envoyer
-    const project$ = this.project$(projectName, siteName);
-    const envoyerServer$ = this.envoyerServer$(project$, server$, site$);
+    this.logger.debug(`loading projects from Envoyer`);
+    const projects = await this.envoyerService.listProjects();
+    this.logger.debug(`Checking for project named "${projectName}"`);
+    let project = projects.find((project) => project.name === projectName);
+    if (project != null) {
+      this.logger.debug(`project exists`);
+    } else {
+      this.logger.log(`Creating project ${projectName} for site ${siteName}`);
+      project = await this.envoyerService.createProject(projectName, siteName);
+    }
 
-    const env$ = zip(envoyerServer$, site$, database$, dbCreds$).pipe(
-      mergeMap(([envoyerServer, site, database, creds]) => {
-        const env = this.createEnv(
-          this.configService.getEnvironment(),
-          site,
-          database,
-          creds,
-        );
-        this.logger.debug(
-          `Pushing environment to server "${envoyerServer.name}" on Envoyer for site "${site.name}"`,
-        );
-        return envoyerServer.pushEnvironment(env);
-      }),
+    this.logger.debug(`loading servers for project ${project.id}`);
+    const envoyerServers = await project.listServers();
+    this.logger.debug(
+      `Checking for envoyer server with IP ${server.ipAddress}`,
     );
-
-    const deploy$ = zip(project$, env$).pipe(
-      mergeMap(([project, _]) => {
-        this.logger.debug(`Deploying project ${project.name}`);
-        return project.deploy();
-      }),
+    let envoyerServer = envoyerServers.find(
+      (server) => server.ipAddress === server.ipAddress,
     );
+    if (envoyerServer != null) {
+      this.logger.debug(`envoyer server exists`);
+    } else {
+      this.logger.log(`Creating server in Envoyer`);
+      envoyerServer = await project.createServer('preview', site, phpVersion);
+    }
+    const sshKeyName = `Envoyer (${siteName})`;
+    this.logger.debug(`Checking for SSH key "${sshKeyName}" on forge server`);
+    const sshKeys = await server.listKeys();
+    let sshKey = sshKeys.find((key) => key.name === sshKeyName);
+    if (sshKey != null) {
+      this.logger.debug('ssh key exists');
+    } else {
+      this.logger.log(`Creating ssh key on forge server`);
+      sshKey = await server.createKey(
+        sshKeyName,
+        'forge',
+        envoyerServer.publicKey,
+      );
+    }
+    await sshKey.waitUntilReady();
 
-    await firstValueFrom(deploy$);
+    const env = this.createEnv(
+      this.configService.getEnvironment(),
+      site,
+      database,
+      dbCreds,
+    );
+    this.logger.debug(
+      `Pushing environment to server "${envoyerServer.name}" on Envoyer for site "${site.name}"`,
+    );
+    await envoyerServer.pushEnvironment(env);
+
+    this.logger.debug(`Deploying project ${project.name}`);
+    await project.deploy();
   }
 
   async destroyPreview() {}
@@ -301,11 +181,8 @@ function titleCase(repoName: string): string {
     .join(' ');
 }
 
-function dbBranchName(repoName: string, branchName: string): string {
-  const repoParts = repoName.split(/[-_]/);
+function dbBranchName(branchName: string): string {
   const branchParts = branchName.split(/[-_]/);
 
-  return [...repoParts, ...branchParts]
-    .map((part) => part.toLowerCase())
-    .join('_');
+  return branchParts.map((part) => part.toLowerCase()).join('-');
 }

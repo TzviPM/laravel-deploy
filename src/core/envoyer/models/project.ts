@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { EnvoyerService } from '../envoyer.service';
 import { Site } from 'src/core/forge/models/site';
+import { Server } from './server';
 
 export const projectSchema = z.object({
   id: z.number(),
@@ -28,15 +29,19 @@ export class Project {
     this.branch = data.branch;
   }
 
-  public deploy() {
+  public deploy(): Promise<void> {
     return this.envoyerService.deployProject(this.id, this.branch);
   }
 
-  public listServers() {
+  public listServers(): Promise<Server[]> {
     return this.envoyerService.listServers(this);
   }
 
-  public createServer(name: string, site: Site) {
-    return this.envoyerService.createServer(this, name, site);
+  public createServer(
+    name: string,
+    site: Site,
+    phpVersion: string,
+  ): Promise<Server> {
+    return this.envoyerService.createServer(this, name, site, phpVersion);
   }
 }

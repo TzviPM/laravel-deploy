@@ -1,22 +1,53 @@
-import { Injectable, LogLevel, LoggerService } from '@nestjs/common';
+import {
+  ConsoleLogger,
+  Injectable,
+  LogLevel,
+  LoggerService,
+} from '@nestjs/common';
 
 @Injectable()
-export abstract class Logger implements LoggerService {
-  abstract log(message: any, ...optionalParams: any[]);
+export abstract class Logger extends ConsoleLogger implements LoggerService {
+  abstract printLog(context: string, ...messages: unknown[]): void;
+  abstract printError(context: string, ...messages: unknown[]): void;
+  abstract printWarn(context: string, ...messages: unknown[]): void;
+  abstract printDebug(context: string, ...messages: unknown[]): void;
 
-  abstract error(message: any, ...optionalParams: any[]);
-
-  abstract warn(message: any, ...optionalParams: any[]);
-
-  abstract debug(message: any, ...optionalParams: any[]);
-
-  verbose(message: any, ...optionalParams: any[]) {
-    throw new Error('Method not implemented: verbose.');
+  constructor(context: string) {
+    super(context);
   }
-  fatal(message: any, ...optionalParams: any[]) {
-    throw new Error('Method not implemented: fatal.');
+
+  log(...args: unknown[]) {
+    const { messages, context } = this.parseArgs(...args);
+    this.printLog(context, ...messages);
   }
-  setLogLevels?(levels: LogLevel[]) {
-    throw new Error('Method not implemented: setLogLevels.');
+
+  error(...args: unknown[]) {
+    const { messages, context } = this.parseArgs(...args);
+    this.printError(context, ...messages);
+  }
+
+  warn(...args: unknown[]) {
+    const { messages, context } = this.parseArgs(...args);
+    this.printWarn(context, ...messages);
+  }
+
+  debug(...args: unknown[]) {
+    const { messages, context } = this.parseArgs(...args);
+    this.printDebug(context, ...messages);
+  }
+
+  protected parseArgs(...args: unknown[]) {
+    if (args.length <= 1) {
+      return { messages: args, context: this.context };
+    }
+    const lastElement = args[args.length - 1];
+    const isContext = typeof lastElement === 'string';
+    if (!isContext) {
+      return { messages: args, context: this.context };
+    }
+    return {
+      context: lastElement,
+      messages: args.slice(0, args.length - 1),
+    };
   }
 }

@@ -67,6 +67,10 @@ export class PreviewConfigService {
     return this.actionService.getInput('project');
   }
 
+  getPhpVersion() {
+    return this.actionService.getInput('php-version');
+  }
+
   getEnvironment() {
     return this.actionService.getInput('environment');
   }
