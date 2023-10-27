@@ -28,7 +28,7 @@ export class DeploymentService {
     database: Database,
     creds: Credentials,
   ) {
-    this.logger.debug(`Creating an environment for ${site.name}`);
+    this.logger.log(`Creating an environment for ${site.name}`);
 
     return dedent`${baseEnv}
     APP_URL=${site.name}
@@ -60,27 +60,27 @@ export class DeploymentService {
     const dbBackupName = baseDbBranch + '__' + dbBranch;
 
     // Forge
-    this.logger.debug(`loading server with ID ${serverId}`);
+    this.logger.log(`loading server with ID ${serverId}`);
     const server = await this.forgeService.getServer(serverId);
 
-    this.logger.debug(`loading sites for server ${server.id}`);
+    this.logger.log(`loading sites for server ${server.id}`);
     const sites = await server.loadSites();
-    this.logger.debug(`Checking for site named ${siteName}`);
+    this.logger.log(`Checking for site named ${siteName}`);
     let site = sites.find((site) => site.name === siteName);
     if (site != null) {
-      this.logger.debug(`site exists`);
+      this.logger.log(`site exists`);
     } else {
       const databaseName = siteName.replace(/-/g, '_').replace(/[^\w_]/g, '');
-      this.logger.debug(`Sanitized database name: '${databaseName}'`);
+      this.logger.log(`Sanitized database name: '${databaseName}'`);
 
       this.logger.log(`Creating site ${siteName}`);
       site = await server.createSite(siteName, databaseName);
     }
-    this.logger.debug(`Checking for SSL Certificate on forge`);
+    this.logger.log(`Checking for SSL Certificate on forge`);
     const certs = await site.listCerts();
     let cert = certs.find((cert) => cert.domain === site.name);
     if (cert != null) {
-      this.logger.debug('cert exists');
+      this.logger.log('cert exists');
     } else {
       this.logger.log(`Creating certificate with LetsEncrypt`);
       cert = await site.createLetsEncryptCert();
@@ -88,64 +88,62 @@ export class DeploymentService {
     await cert.waitUntilReady();
 
     // PlanetScale
-    this.logger.debug(`loading database info for PlanetScale`);
+    this.logger.log(`loading database info for PlanetScale`);
     const orgName = this.configService.getPScaleOrganization();
     const dbName = this.configService.getPScaleDatabase();
 
-    this.logger.debug(`loading organization "${orgName}" from PlanetScale`);
+    this.logger.log(`loading organization "${orgName}" from PlanetScale`);
     const org = await this.pscaleService.getOrganization(orgName);
-    this.logger.debug(
+    this.logger.log(
       `getting database "${dbName}" for organization "${orgName}"`,
     );
     const database = await org.getDatabase(dbName);
 
-    this.logger.debug(`Getting base branch "${baseDbBranch}"`);
+    this.logger.log(`Getting base branch "${baseDbBranch}"`);
     const baseBranch = await database.getBranch(baseDbBranch);
-    this.logger.debug(
+    this.logger.log(
       `Creating backup "${dbBackupName}" of branch "${baseDbBranch}"`,
     );
     const backup = await baseBranch.ensureBackup(dbBackupName);
-    this.logger.debug(
+    this.logger.log(
       `Forking branch "${dbBranch}" from base branch "${baseDbBranch}"`,
     );
     const branch = await baseBranch.ensureForkBranch(dbBranch, backup);
-    this.logger.debug(
+    this.logger.log(
       `Generating credentials named "preview" for branch "${dbBranch}"`,
     );
     const dbCreds = await branch.forceCreateCredentials('preview');
 
     // Envoyer
-    this.logger.debug(`loading projects from Envoyer`);
+    this.logger.log(`loading projects from Envoyer`);
     const projects = await this.envoyerService.listProjects();
-    this.logger.debug(`Checking for project named "${projectName}"`);
+    this.logger.log(`Checking for project named "${projectName}"`);
     let project = projects.find((project) => project.name === projectName);
     if (project != null) {
-      this.logger.debug(`project exists`);
+      this.logger.log(`project exists`);
     } else {
       this.logger.log(`Creating project ${projectName} for site ${siteName}`);
       project = await this.envoyerService.createProject(projectName, siteName);
     }
 
-    this.logger.debug(`loading servers for project ${project.id}`);
+    this.logger.log(`loading servers for project ${project.id}`);
     const envoyerServers = await project.listServers();
-    this.logger.debug(
-      `Checking for envoyer server with IP ${server.ipAddress}`,
-    );
+    this.logger.log(`Checking for envoyer server with IP ${server.ipAddress}`);
     let envoyerServer = envoyerServers.find(
       (server) => server.ipAddress === server.ipAddress,
     );
     if (envoyerServer != null) {
-      this.logger.debug(`envoyer server exists`);
+      this.logger.log(`envoyer server exists`);
     } else {
       this.logger.log(`Creating server in Envoyer`);
       envoyerServer = await project.createServer('preview', site, phpVersion);
     }
     const sshKeyName = `Envoyer (${siteName})`;
-    this.logger.debug(`Checking for SSH key "${sshKeyName}" on forge server`);
+    this.logger.log(`Checking for SSH key "${sshKeyName}" on forge server`);
     const sshKeys = await server.listKeys();
     let sshKey = sshKeys.find((key) => key.name === sshKeyName);
     if (sshKey != null) {
-      this.logger.debug('ssh key exists');
+      this.logger.log('ssh key exists');
     } else {
       this.logger.log(`Creating ssh key on forge server`);
       sshKey = await server.createKey(
@@ -162,12 +160,12 @@ export class DeploymentService {
       database,
       dbCreds,
     );
-    this.logger.debug(
+    this.logger.log(
       `Pushing environment to server "${envoyerServer.name}" on Envoyer for site "${site.name}"`,
     );
     await envoyerServer.pushEnvironment(env);
 
-    this.logger.debug(`Deploying project ${project.name}`);
+    this.logger.log(`Deploying project ${project.name}`);
     await project.deploy();
   }
 
