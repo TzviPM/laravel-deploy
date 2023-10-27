@@ -49,7 +49,7 @@ export class DeploymentService {
     const { id: serverId, domain: domain } = servers[0];
     const pr = this.contextService.getPullRequest();
     const branchName = pr.branchName;
-    const siteName = `${branchName}.${domain}`;
+    const siteName = `${urlName(branchName)}.${domain}`;
     const baseProjectName =
       this.configService.getProjectName() || titleCase(pr.repo.name);
     const projectName = `${baseProjectName} Preview - ${titleCase(branchName)}`;
@@ -182,6 +182,12 @@ function titleCase(repoName: string): string {
 }
 
 function dbBranchName(branchName: string): string {
+  const branchParts = branchName.split(/[-_]/);
+
+  return branchParts.map((part) => part.toLowerCase()).join('-');
+}
+
+function urlName(branchName: string): string {
   const branchParts = branchName.split(/[-_]/);
 
   return branchParts.map((part) => part.toLowerCase()).join('-');
