@@ -1,4 +1,4 @@
-name: Laravel Deploy
+name: Laravel Deploy with Forge and Friends
 author: Tzvi Melamed (TzviPM)
 description: Create on-demand preview environments for Laravel apps.
 branding:
