@@ -1,10 +1,10 @@
 {
   "name": "laravel-deploy",
-  "version": "0.0.1",
-  "description": "",
-  "author": "",
+  "version": "1.0.0",
+  "description": "A GitHub Action to create on-demand preview environments for Laravel apps.",
+  "author": "Tzvi Melamed (TzviPM)",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "MIT",
   "scripts": {
     "build": "npm run build:nest && npm run build:ncc",
     "build:nest": "nest build",
