@@ -54,6 +54,10 @@ export class Branch {
     return this.pscaleService.listBackups(this);
   }
 
+  getBackup(name: string): Promise<Backup> {
+    return this.pscaleService.getBackup(this, name);
+  }
+
   createBackup(name: string): Promise<Backup> {
     return this.pscaleService.createBackup(this, name);
   }

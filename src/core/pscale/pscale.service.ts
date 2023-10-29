@@ -2,7 +2,7 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
 import { PreviewConfigService } from '../preview_config/preview_config.service';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
-import { firstValueFrom, map } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import { z } from 'zod';
 import { Organization, organizationSchema } from './models/organization';
 import { Database, databaseSchema } from './models/database';
@@ -151,6 +151,12 @@ export class PlanetScaleService {
     const raw = await this.get(`${branch.path}/backups`);
     const res = backupsResponseSchema.parse(raw?.data);
     return res.data.map((backup) => new Backup(this, branch, backup));
+  }
+
+  public async getBackup(branch: Branch, name: string): Promise<Backup> {
+    const raw = await this.get(`${branch.path}/backups/${name}`);
+    const res = backupResponseSchema.parse(raw?.data);
+    return new Backup(this, branch, res);
   }
 
   public async createBackup(branch: Branch, name: string): Promise<Backup> {
