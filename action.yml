@@ -36,6 +36,9 @@ inputs:
   servers:
     description: 'List of Forge servers to use for deploy previews. Each line must contain a domain name and a Forge server ID separated by a space. Note: currently only supports a single server.'
     required: true
+  branches:
+    description: 'Branch mapping from git to planetscale. Each line must contain a git branch name and a PlanetScale branch name separated by a space.'
+    required: false
   environment:
     description: Environment variables to add or update on the preview site.
     required: false

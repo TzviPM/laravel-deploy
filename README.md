@@ -65,6 +65,8 @@ jobs:
             APP_NAME="My Org Portal"
           servers: |
             abc.myorg.com 60041
+          branches: |
+            master main
 ```
 
 ### Inputs
@@ -111,6 +113,14 @@ The `servers` input parameter accepts a list of Forge servers to deploy to.
 Each server must include both a domain name and a server ID, separated by a space. The domain name should be the wildcard subdomain pointing at that server (without the wildcard part). For example, if your wildcard subdomain is `*.abc.myorg.com` and your Forge server ID is `60041`, set this input parameter to `abc.myorg.com 60041`.
 
 If this input parameter contains multiple lines, each line will be treated as a different Forge server. The action currently only deploys to one server; if you list multiple servers, it will use the first one.
+
+#### `branches`
+
+The `branches` input parameter accepts a list of mappings from repo branch names to database branch names.
+
+Each mapping must include both a git branch name and a database branch name, separated by a space. The `laravel-deploy` action will prioritize these mappings over auto-generated branch names. This can be useful, for example, if your git repository uses `master` as its primary branch name, but the planetscale database uses `main`.
+
+If this input parameter contains multiple lines, each line will be treated as a separate mapping.
 
 #### `environment`
 
