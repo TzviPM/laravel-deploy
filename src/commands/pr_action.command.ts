@@ -3,6 +3,7 @@ import { CommandRunner, Command } from 'nest-commander';
 import { ActionType, ContextService } from 'src/github/context/context.service';
 import { PrOpenedRunner } from './pr_opened.command';
 import { PrClosedRunner } from './pr_closed.command';
+import { PrMergedRunner } from './pr_merged.command';
 
 @Command({
   name: 'pr',
@@ -19,6 +20,7 @@ export class PrActionRunner extends CommandRunner {
     private readonly contextService: ContextService,
     private readonly openedCommand: PrOpenedRunner,
     private readonly closedCommand: PrClosedRunner,
+    private readonly mergedCommand: PrMergedRunner,
   ) {
     super();
   }
@@ -29,6 +31,8 @@ export class PrActionRunner extends CommandRunner {
         return await this.openedCommand.run();
       case ActionType.Closed:
         return this.closedCommand.run();
+      case ActionType.Merged:
+        return this.mergedCommand.run();
       default:
         this.logger.log('Unknown PR action');
         break;

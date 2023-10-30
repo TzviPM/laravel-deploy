@@ -4,18 +4,18 @@ import { DeploymentService } from 'src/core/deployment/deployment.service';
 import { ContextService } from 'src/github/context/context.service';
 
 @Command({
-  name: 'closed',
-  description: 'Run PR closed action',
+  name: 'merged',
+  description: 'Run PR merged action',
 })
-export class PrClosedRunner extends CommandRunner {
-  private readonly logger = new Logger(PrClosedRunner.name);
+export class PrMergedRunner extends CommandRunner {
+  private readonly logger = new Logger(PrMergedRunner.name);
 
   constructor(private readonly deploymentService: DeploymentService) {
     super();
   }
 
   async run() {
-    this.logger.log('PR closed');
-    await this.deploymentService.destroyPreview(false);
+    this.logger.log('PR merged');
+    await this.deploymentService.destroyPreview(true);
   }
 }
