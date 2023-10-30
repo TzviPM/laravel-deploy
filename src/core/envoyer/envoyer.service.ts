@@ -17,6 +17,7 @@ import { v5 as uuidv5 } from 'uuid';
 import { Server, serverSchema } from './models/server';
 import { Site } from '../forge/models/site';
 import { ErrorHandler } from 'src/errors/handler';
+import { AGENT_NAME } from '../agent';
 
 export const projectsResponseSchema = z.object({
   projects: z.array(projectSchema),
@@ -57,7 +58,7 @@ export class EnvoyerService {
   private config(): AxiosRequestConfig {
     return {
       headers: {
-        'User-Agent': 'TzviPM/laravel-deploy@v1',
+        'User-Agent': AGENT_NAME,
         Authorization: `Bearer ${this.token}`,
         Accept: 'application/json',
         'Content-Type': 'application/json',
@@ -130,15 +131,19 @@ export class EnvoyerService {
     return new Project(this, res.project);
   }
 
-  public async deployProject(projectId: number, branch: string): Promise<void> {
-    await this.post(`projects/${projectId}/deployments`, {
+  public async deployProject(project: Project, branch: string): Promise<void> {
+    await this.post(`${project.apiPath}/deployments`, {
       from: 'branch',
       branch,
     });
   }
 
+  public async deleteProject(project: Project): Promise<void> {
+    await this.delete(project.apiPath, {});
+  }
+
   public async listServers(project: Project): Promise<Server[]> {
-    const raw = await this.get(`projects/${project.id}/servers`);
+    const raw = await this.get(`${project.apiPath}/servers`);
     const res = serversResponseSchema.parse(raw?.data);
     return res.servers.map((server) => new Server(this, project, server));
   }
@@ -149,7 +154,7 @@ export class EnvoyerService {
     site: Site,
     phpVersion: string,
   ): Promise<Server> {
-    const raw = await this.post(`projects/${project.id}/servers`, {
+    const raw = await this.post(`${project.apiPath}/servers`, {
       name,
       connectAs: site.username,
       host: site.server.ipAddress,
@@ -163,18 +168,18 @@ export class EnvoyerService {
   }
 
   public async pushEnvironment(
-    projectId: number,
-    serverId: number,
+    project: Project,
+    server: Server,
     contents: string,
   ): Promise<void> {
     const key = uuidv5(EnvoyerService.repoUrl, uuidv5.URL);
-    await this.delete(`projects/${projectId}/environment`, {
+    await this.delete(`${project.apiPath}/environment`, {
       key,
     });
-    await this.put(`projects/${projectId}/environment`, {
+    await this.put(`${project.apiPath}/environment`, {
       key,
       contents,
-      servers: [serverId],
+      servers: [server.id],
     });
   }
 }

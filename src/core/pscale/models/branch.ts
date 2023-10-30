@@ -83,4 +83,8 @@ export class Branch {
     }
     return this.createCredentials(name);
   }
+
+  delete(): Promise<void> {
+    return this.pscaleService.deleteBranch(this);
+  }
 }

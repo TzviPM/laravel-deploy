@@ -45,4 +45,8 @@ export class Site {
   createLetsEncryptCert(): Promise<Certificate> {
     return this.forgeService.createLetsEncryptCert(this);
   }
+
+  delete(): Promise<void> {
+    return this.forgeService.deleteSite(this);
+  }
 }

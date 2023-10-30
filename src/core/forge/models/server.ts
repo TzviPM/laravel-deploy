@@ -32,6 +32,11 @@ export class Server {
     return this.forgeService.listSites(this);
   }
 
+  async findSite(siteName: string): Promise<Site | undefined> {
+    const sites = await this.loadSites();
+    return sites.find((site) => site.name === siteName);
+  }
+
   createSite(siteName: string, databaseName: string): Promise<Site> {
     return this.forgeService.createSite(this, siteName, databaseName);
   }

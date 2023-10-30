@@ -8,6 +8,7 @@ import { Server, serverSchema } from './models/server';
 import { Site, siteSchema } from './models/site';
 import { SshKey, sshKeySchema } from './models/ssh_key';
 import { Certificate, certificateSchema } from './models/certificate';
+import { AGENT_NAME } from '../agent';
 
 export const serverResponseSchema = z.object({
   server: serverSchema,
@@ -58,7 +59,7 @@ export class ForgeService {
   private config(): AxiosRequestConfig {
     return {
       headers: {
-        'User-Agent': 'TzviPM/laravel-deploy@v1',
+        'User-Agent': AGENT_NAME,
         Authorization: `Bearer ${this.token}`,
         Accept: 'application/json',
         'Content-Type': 'application/json',
@@ -77,6 +78,13 @@ export class ForgeService {
     this.logger.debug(`POST ${this.apiUrl(path)} ${JSON.stringify(data)}`);
     return firstValueFrom(
       this.httpService.post(this.apiUrl(path), data, this.config()),
+    );
+  }
+
+  private delete(path: string): Promise<AxiosResponse<unknown, any>> {
+    this.logger.debug(`DELETE ${this.apiUrl(path)}`);
+    return firstValueFrom(
+      this.httpService.delete(this.apiUrl(path), this.config()),
     );
   }
 
@@ -105,6 +113,10 @@ export class ForgeService {
     });
     const res = siteResponseSchema.parse(raw?.data);
     return new Site(this, server, res.site);
+  }
+
+  public async deleteSite(site: Site): Promise<void> {
+    await this.delete(site.apiPath);
   }
 
   public async listCerts(site: Site): Promise<Certificate[]> {
