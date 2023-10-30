@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2023-10-30
+
+### Fixed
+- Backups are now deleted upon closing a pull reques.
+- Misc fixes for comments.
+
 ## [1.2.0] - 2023-10-30
 
 ### Added
