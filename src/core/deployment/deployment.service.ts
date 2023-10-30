@@ -10,6 +10,14 @@ import { PlanetScaleService } from '../pscale/pscale.service';
 import { Credentials } from '../pscale/models/credentials';
 import * as crypto from 'node:crypto';
 
+interface Preview {
+  url: string;
+}
+
+interface MergeResult {
+  planetScaleRequestUrl: string;
+}
+
 @Injectable()
 export class DeploymentService {
   private readonly logger = new Logger(DeploymentService.name);
@@ -100,7 +108,7 @@ export class DeploymentService {
     return database;
   }
 
-  async createPreview() {
+  async createPreview(): Promise<Preview> {
     const siteName = this.getSiteName();
     const projectName = this.getEnvoyerProjectName();
     const phpVersion = this.configService.getPhpVersion();
@@ -205,9 +213,15 @@ export class DeploymentService {
 
     this.logger.log(`Deploying project ${project.name}`);
     await project.deploy();
+
+    return {
+      url: siteName,
+    };
   }
 
-  async destroyPreview(isMerge: boolean) {
+  async destroyPreview(isMerge: true): Promise<MergeResult>;
+  async destroyPreview(isMerge: false): Promise<undefined>;
+  async destroyPreview(isMerge: boolean): Promise<MergeResult | undefined> {
     const projectName = this.getEnvoyerProjectName();
     this.logger.log(`Deleting Envoyer project "${projectName}"`);
     const projects = await this.envoyerService.listProjects();
@@ -243,7 +257,10 @@ export class DeploymentService {
       this.logger.log(
         `Creating deployment request in PlanetScale to merge ${branches.branch} into ${branches.base}.`,
       );
-      await db.requestDeploy(branch, baseBranch);
+      const deployRequest = await db.requestDeploy(branch, baseBranch);
+      return {
+        planetScaleRequestUrl: deployRequest.htmlUrl,
+      };
     } else {
       this.logger.log(`Deleting database branch ${branches.branch}.`);
       await branch.delete();

@@ -6,9 +6,10 @@ import { PrOpenedRunner } from './commands/pr_opened.command';
 import { PrClosedRunner } from './commands/pr_closed.command';
 import { CoreModule } from './core/core.module';
 import { LoggingModule } from './logging/logging.module';
+import { PrMergedRunner } from './commands/pr_merged.command';
 
 @Module({
   imports: [ConfigModule.forRoot(), GithubModule, CoreModule, LoggingModule],
-  providers: [PrActionRunner, PrOpenedRunner, PrClosedRunner],
+  providers: [PrActionRunner, PrOpenedRunner, PrClosedRunner, PrMergedRunner],
 })
 export class AppModule {}
