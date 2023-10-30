@@ -32,6 +32,30 @@ export class PreviewConfigService {
       });
   }
 
+  getBranchMappings() {
+    const lines = this.actionService.getMultilineInput('branches');
+    const map = new Map<string, string>();
+    for (const line of lines) {
+      this.logger.debug(`Parsing branch mapping input line: ${line}`);
+      const [gitBranch, pscaleBranch, ...rest] = line.split(' ');
+      if (!gitBranch || !pscaleBranch || rest.length > 0) {
+        throw new Error(
+          `Each line must contain a git branch name and a PlanetScale branch name separated by one space. Found '${line}'.`,
+        );
+      }
+      if (map.has(gitBranch)) {
+        throw new Error(
+          `Cannot map a git branch name to more than one database branch. Found both '${line}' and '${gitBranch} ${map.get(
+            gitBranch,
+          )}'.`,
+        );
+      }
+      map.set(gitBranch, pscaleBranch);
+    }
+
+    return map;
+  }
+
   getForgeToken() {
     return this.actionService.getInput('forge-token', { required: true });
   }

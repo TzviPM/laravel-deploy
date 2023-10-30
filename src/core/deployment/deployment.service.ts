@@ -54,9 +54,10 @@ export class DeploymentService {
       this.configService.getProjectName() || titleCase(pr.repo.name);
     const projectName = `${baseProjectName} Preview - ${titleCase(branchName)}`;
     const phpVersion = this.configService.getPhpVersion();
+    const branchMappings = this.configService.getBranchMappings();
 
-    const baseDbBranch = dbBranchName(pr.baseBranchName);
-    const dbBranch = dbBranchName(branchName);
+    const baseDbBranch = dbBranchName(pr.baseBranchName, branchMappings);
+    const dbBranch = dbBranchName(branchName, branchMappings);
     const dbBackupName = baseDbBranch + '__' + dbBranch;
 
     // Forge
@@ -105,6 +106,7 @@ export class DeploymentService {
       `Creating backup "${dbBackupName}" of branch "${baseDbBranch}"`,
     );
     const backup = await baseBranch.ensureBackup(dbBackupName);
+    await backup.waitUntilReady();
     this.logger.log(
       `Forking branch "${dbBranch}" from base branch "${baseDbBranch}"`,
     );
@@ -179,14 +181,23 @@ function titleCase(repoName: string): string {
     .join(' ');
 }
 
-function dbBranchName(branchName: string): string {
-  const branchParts = branchName.split(/[-_]/);
+function kebabCase(branchName: string): string {
+  return branchName
+    .split(/[-_]/)
+    .map((part) => part.toLowerCase())
+    .join('-');
+}
 
-  return branchParts.map((part) => part.toLowerCase()).join('-');
+function dbBranchName(
+  branchName: string,
+  branchMappings: Map<string, string>,
+): string {
+  if (branchMappings.has(branchName)) {
+    return branchMappings.get(branchName);
+  }
+  return kebabCase(branchName);
 }
 
 function urlName(branchName: string): string {
-  const branchParts = branchName.split(/[-_]/);
-
-  return branchParts.map((part) => part.toLowerCase()).join('-');
+  return kebabCase(branchName);
 }

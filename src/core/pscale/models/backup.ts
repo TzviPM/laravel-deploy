@@ -5,11 +5,13 @@ import { Branch } from './branch';
 export const backupSchema = z.object({
   id: z.string(),
   name: z.string(),
+  state: z.string(),
 });
 
 export class Backup {
   public id: string;
   public name: string;
+  public state: string;
 
   public get path() {
     return `${this.branch.path}/backups/${this.id}`;
@@ -22,5 +24,17 @@ export class Backup {
   ) {
     this.id = data.id;
     this.name = data.name;
+  }
+
+  private async refetch() {
+    const backup = await this.branch.getBackup(this.name);
+    this.state = backup.state;
+  }
+
+  public async waitUntilReady(): Promise<void> {
+    while (['pending', 'running'].includes(this.state)) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await this.refetch();
+    }
   }
 }
