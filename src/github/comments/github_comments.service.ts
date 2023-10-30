@@ -5,7 +5,7 @@ import { Message } from './messages';
 import { ActionsService } from '../actions/actions.service';
 import { ContextService } from '../context/context.service';
 
-type OctoKit = ReturnType<typeof github.getOctokit>;
+type OctoKit = ReturnType<(typeof github)['getOctokit']>;
 
 @Injectable()
 export class GithubCommentsService implements CommentsService {
@@ -20,10 +20,10 @@ export class GithubCommentsService implements CommentsService {
     this.client = github.getOctokit(this.token);
   }
 
-  postComment(message: Message): void {
+  async postComment(message: Message): Promise<void> {
     const pr = this.contextService.getPullRequest();
 
-    this.client.rest.issues.createComment({
+    await this.client.rest.issues.createComment({
       owner: pr.repo.owner,
       repo: pr.repo.name,
       issue_number: pr.number,

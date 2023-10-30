@@ -3,7 +3,6 @@ import { CommandRunner, Command } from 'nest-commander';
 import { DeploymentService } from 'src/core/deployment/deployment.service';
 import { CommentsService } from 'src/github/comments/comments.service';
 import { Message } from 'src/github/comments/messages';
-import { ContextService } from 'src/github/context/context.service';
 
 @Command({
   name: 'merged',
@@ -28,6 +27,6 @@ export class PrMergedRunner extends CommandRunner {
       Message.Link(result.planetScaleRequestUrl),
     );
 
-    this.commentsService.postComment(message);
+    await this.commentsService.postComment(message);
   }
 }

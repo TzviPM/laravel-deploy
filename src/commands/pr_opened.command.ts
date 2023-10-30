@@ -27,6 +27,6 @@ export class PrOpenedRunner extends CommandRunner {
       Message.Link(preview.url),
     );
 
-    this.commentsService.postComment(message);
+    await this.commentsService.postComment(message);
   }
 }

@@ -27,6 +27,6 @@ export class PrClosedRunner extends CommandRunner {
       'Deployment preview and associated resources have been teared down.',
     );
 
-    this.commentsService.postComment(message);
+    await this.commentsService.postComment(message);
   }
 }
