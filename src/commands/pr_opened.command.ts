@@ -24,7 +24,7 @@ export class PrOpenedRunner extends CommandRunner {
 
     const message = Message.Seq(
       Message.Text('Deployment preview created at'),
-      Message.Link(preview.url),
+      Message.Link(`https://${preview.url}`),
     );
 
     await this.commentsService.postComment(message);
