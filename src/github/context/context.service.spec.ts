@@ -1,12 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ContextService } from './context.service';
+import { EnvContextService } from './env_context_service';
 
 describe('ContextService', () => {
   let service: ContextService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [ContextService],
+      providers: [
+        {
+          provide: ContextService,
+          useClass: EnvContextService,
+        },
+      ],
     }).compile();
 
     service = module.get<ContextService>(ContextService);

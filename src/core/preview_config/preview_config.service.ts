@@ -28,6 +28,7 @@ export class PreviewConfigService {
         } catch (e: unknown) {
           const error = e as Error;
           this.logger.error(`Invalid \`servers\` input. ${error.message}`);
+          throw e;
         }
       });
   }

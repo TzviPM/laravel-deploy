@@ -134,7 +134,7 @@ export class DeploymentService {
     }
     this.logger.log(`Checking for SSL Certificate on forge`);
     const certs = await site.listCerts();
-    let cert = certs.find((cert) => cert.domain === site.name);
+    let cert = certs.find((cert) => cert.domain === site!.name);
     if (cert != null) {
       this.logger.log('cert exists');
     } else {
@@ -299,7 +299,7 @@ function dbBranchName(
   branchMappings: Map<string, string>,
 ): string {
   if (branchMappings.has(branchName)) {
-    return branchMappings.get(branchName);
+    return branchMappings.get(branchName)!;
   }
   return kebabCase(branchName);
 }

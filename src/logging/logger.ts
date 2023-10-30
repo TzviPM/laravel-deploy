@@ -38,12 +38,12 @@ export abstract class Logger extends ConsoleLogger implements LoggerService {
 
   protected parseArgs(...args: unknown[]) {
     if (args.length <= 1) {
-      return { messages: args, context: this.context };
+      return { messages: args, context: this.context ?? Logger.name };
     }
     const lastElement = args[args.length - 1];
     const isContext = typeof lastElement === 'string';
     if (!isContext) {
-      return { messages: args, context: this.context };
+      return { messages: args, context: this.context ?? Logger.name };
     }
     return {
       context: lastElement,

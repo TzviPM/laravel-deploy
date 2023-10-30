@@ -22,7 +22,9 @@ export class TSLogger extends Logger {
     const oldName = this.logger.settings.name;
     this.setContext(name);
     fn();
-    this.setContext(oldName);
+    if (oldName) {
+      this.setContext(oldName);
+    }
   }
 
   printLog(context: string, ...messages: unknown[]): void {
