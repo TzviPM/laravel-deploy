@@ -5,6 +5,9 @@ import { ConfigModule } from '@nestjs/config';
 import { ContextService } from './context/context.service';
 import { GithubContextService } from './context/github_context.service';
 import { EnvContextService } from './context/env_context_service';
+import { CommentsService } from './comments/comments.service';
+import { GithubCommentsService } from './comments/github_comments.service';
+import { LoggerCommentsService } from './comments/logger_comments.service';
 
 @Module({
   imports: [ConfigModule],
@@ -21,7 +24,13 @@ import { EnvContextService } from './context/env_context_service';
         ? GithubContextService
         : EnvContextService,
     },
+    {
+      provide: CommentsService,
+      useClass: ContextService.isRunningOnGithub()
+        ? GithubCommentsService
+        : LoggerCommentsService,
+    },
   ],
-  exports: [ActionsService, ContextService],
+  exports: [ActionsService, ContextService, CommentsService],
 })
 export class GithubModule {}

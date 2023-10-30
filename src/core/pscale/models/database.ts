@@ -4,6 +4,7 @@ import { Organization } from './organization';
 import { Branch } from './branch';
 import { Backup } from './backup';
 import { Observable } from 'rxjs';
+import { DeployRequest } from './deploy_request';
 
 export const databaseSchema = z.object({
   id: z.string(),
@@ -39,7 +40,7 @@ export class Database {
     return this.pscaleService.createBranch(this, parent, name, backup);
   }
 
-  requestDeploy(from: Branch, into: Branch): Promise<void> {
+  requestDeploy(from: Branch, into: Branch): Promise<DeployRequest> {
     return this.pscaleService.requestDeploy(this, from, into);
   }
 }

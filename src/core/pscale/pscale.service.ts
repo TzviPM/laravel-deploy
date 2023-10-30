@@ -10,6 +10,7 @@ import { Branch, branchSchema } from './models/branch';
 import { Backup, backupSchema } from './models/backup';
 import { Credentials, credentialsSchema } from './models/credentials';
 import { AGENT_NAME } from '../agent';
+import { DeployRequest, deployRequestSchema } from './models/deploy_request';
 
 export const organizationsResponseSchema = z.object({
   data: z.array(organizationSchema),
@@ -40,6 +41,8 @@ export const credentialsResponseSchema = z.object({
 });
 
 export const credentialResponseSchema = credentialsSchema;
+
+export const deployRequestResponseSchema = deployRequestSchema;
 
 @Injectable()
 export class PlanetScaleService {
@@ -204,11 +207,13 @@ export class PlanetScaleService {
     database: Database,
     from: Branch,
     into: Branch,
-  ): Promise<void> {
-    await this.post(`${database.path}/deploy-requests`, {
+  ): Promise<DeployRequest> {
+    const raw = await this.post(`${database.path}/deploy-requests`, {
       branch: from,
       into_branch: into,
       notes: `Initiated via ${AGENT_NAME}`,
     });
+    const res = deployRequestResponseSchema.parse(raw);
+    return new DeployRequest(database, res);
   }
 }
