@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.3] - 2023-10-30
+
+### Fixed
+- URL in comment now includes protocol (`https://`) to ensure it links properly ([#12](https://github.com/TzviPM/laravel-deploy/pull/12)).
+
 ## [1.2.2] - 2023-10-30
 
 ### Fixed
@@ -58,7 +63,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This was the initial release of `laravel-deploy`.
 
-[unreleased]: https://github.com/TzviPM/laravel-deploy/compare/v1.2.2...HEAD
+[unreleased]: https://github.com/TzviPM/laravel-deploy/compare/v1.2.3...HEAD
+[1.2.2]: https://github.com/TzviPM/laravel-deploy/compare/v1.2.2...v1.2.3
 [1.2.2]: https://github.com/TzviPM/laravel-deploy/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/TzviPM/laravel-deploy/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/TzviPM/laravel-deploy/compare/v1.1.0...v1.2.0
