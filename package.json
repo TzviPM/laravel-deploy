@@ -1,6 +1,6 @@
 {
   "name": "laravel-deploy",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "A GitHub Action to create on-demand preview environments for Laravel apps.",
   "author": "Tzvi Melamed (TzviPM)",
   "private": true,

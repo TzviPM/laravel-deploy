@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2023-10-30
+
+### Added
+- Resources are now deleted upon closing a pull request ([#9](https://github.com/TzviPM/laravel-deploy/pull/9)).
+- Merging a PR now creates a deploy request in PlanetScale ([#9](https://github.com/TzviPM/laravel-deploy/pull/9)).
+- Comments are now created upon succesfully completing an action ([#10](https://github.com/TzviPM/laravel-deploy/pull/10)).
+
 ## [1.1.0] - 2023-10-30
 
 ### Added
@@ -39,7 +46,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This was the initial release of `laravel-deploy`.
 
-[unreleased]: https://github.com/TzviPM/laravel-deploy/compare/v1.1.0...HEAD
+[unreleased]: https://github.com/TzviPM/laravel-deploy/compare/v1.2.0...HEAD
+[1.1.0]: https://github.com/TzviPM/laravel-deploy/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/TzviPM/laravel-deploy/compare/v1.0.4...v1.1.0
 [1.0.4]: https://github.com/TzviPM/laravel-deploy/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/TzviPM/laravel-deploy/compare/v1.0.2...v1.0.3
