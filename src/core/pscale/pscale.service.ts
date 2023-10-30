@@ -176,6 +176,10 @@ export class PlanetScaleService {
     return new Backup(this, branch, res);
   }
 
+  public async deleteBackup(backup: Backup): Promise<void> {
+    await this.delete(backup.path);
+  }
+
   public async listCredentials(branch: Branch): Promise<Credentials[]> {
     const raw = await this.get(`${branch.path}/passwords`);
     const res = credentialsResponseSchema.parse(raw?.data);

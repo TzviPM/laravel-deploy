@@ -27,7 +27,7 @@ export class Backup {
   }
 
   private async refetch() {
-    const backup = await this.branch.getBackup(this.name);
+    const backup = await this.branch.getBackup(this.id);
     this.state = backup.state;
   }
 
@@ -36,5 +36,9 @@ export class Backup {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       await this.refetch();
     }
+  }
+
+  public async delete(): Promise<void> {
+    return this.pscaleService.deleteBackup(this);
   }
 }
