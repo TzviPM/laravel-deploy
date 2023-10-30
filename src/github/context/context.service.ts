@@ -26,5 +26,6 @@ export interface PullRequest {
 export enum ActionType {
   Opened,
   Closed,
+  Merged,
   Unknown,
 }

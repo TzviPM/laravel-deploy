@@ -16,5 +16,6 @@ export class PrClosedRunner extends CommandRunner {
 
   async run() {
     this.logger.log('PR closed');
+    await this.deploymentService.destroyPreview(false);
   }
 }

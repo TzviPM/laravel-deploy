@@ -29,8 +29,16 @@ export class Project {
     this.branch = data.branch;
   }
 
+  public get apiPath() {
+    return `projects/${this.id}`;
+  }
+
   public deploy(): Promise<void> {
-    return this.envoyerService.deployProject(this.id, this.branch);
+    return this.envoyerService.deployProject(this, this.branch);
+  }
+
+  public delete(): Promise<void> {
+    return this.envoyerService.deleteProject(this);
   }
 
   public listServers(): Promise<Server[]> {

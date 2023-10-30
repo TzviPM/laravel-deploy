@@ -25,7 +25,9 @@ export class GithubContextService implements ContextService {
       case 'opened':
         return ActionType.Opened;
       case 'closed':
-        return ActionType.Closed;
+        return this.pr.pull_request.merged
+          ? ActionType.Merged
+          : ActionType.Closed;
       default:
         return ActionType.Unknown;
     }

@@ -42,6 +42,8 @@ export class EnvContextService implements ContextService {
         return ActionType.Opened;
       case 'closed':
         return ActionType.Closed;
+      case 'merged':
+        return ActionType.Merged;
       default:
         return ActionType.Unknown;
     }

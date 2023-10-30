@@ -44,30 +44,77 @@ export class DeploymentService {
     `;
   }
 
-  async createPreview() {
-    const servers = this.configService.getServers();
-    const { id: serverId, domain: domain } = servers[0];
+  private getEnvoyerProjectName(): string {
     const pr = this.contextService.getPullRequest();
     const branchName = pr.branchName;
-    const siteName = `${urlName(branchName)}.${domain}`;
+
     const baseProjectName =
       this.configService.getProjectName() || titleCase(pr.repo.name);
-    const projectName = `${baseProjectName} Preview - ${titleCase(branchName)}`;
-    const phpVersion = this.configService.getPhpVersion();
+
+    return `${baseProjectName} - ${titleCase(branchName)}`;
+  }
+
+  private getServerInfo(): { id: number; domain: string } {
+    const servers = this.configService.getServers();
+    return servers[0];
+  }
+
+  private getSiteName(): string {
+    const { domain } = this.getServerInfo();
+
+    const pr = this.contextService.getPullRequest();
+    const branchName = pr.branchName;
+
+    return `${urlName(branchName)}.${domain}`;
+  }
+
+  private getDbBranches(): { base: string; branch: string } {
+    const pr = this.contextService.getPullRequest();
+    const branchName = pr.branchName;
+
     const branchMappings = this.configService.getBranchMappings();
 
-    const baseDbBranch = dbBranchName(pr.baseBranchName, branchMappings);
-    const dbBranch = dbBranchName(branchName, branchMappings);
-    const dbBackupName = baseDbBranch + '__' + dbBranch;
+    const base = dbBranchName(pr.baseBranchName, branchMappings);
+    const branch = dbBranchName(branchName, branchMappings);
+
+    return { base, branch };
+  }
+
+  private async getForgeServer() {
+    const { id: serverId } = this.getServerInfo();
+    this.logger.log(`loading server with ID ${serverId}`);
+    return this.forgeService.getServer(serverId);
+  }
+
+  private async getPlanetScaleDatabase() {
+    this.logger.log(`loading database info for PlanetScale`);
+    const orgName = this.configService.getPScaleOrganization();
+    const dbName = this.configService.getPScaleDatabase();
+
+    this.logger.log(`loading organization "${orgName}" from PlanetScale`);
+    const org = await this.pscaleService.getOrganization(orgName);
+    this.logger.log(
+      `getting database "${dbName}" for organization "${orgName}"`,
+    );
+    const database = await org.getDatabase(dbName);
+    return database;
+  }
+
+  async createPreview() {
+    const siteName = this.getSiteName();
+    const projectName = this.getEnvoyerProjectName();
+    const phpVersion = this.configService.getPhpVersion();
+
+    const db = this.getDbBranches();
+    const dbBackupName = db.base + '__' + db.branch;
 
     // Forge
-    this.logger.log(`loading server with ID ${serverId}`);
-    const server = await this.forgeService.getServer(serverId);
+    const server = await this.getForgeServer();
 
-    this.logger.log(`loading sites for server ${server.id}`);
-    const sites = await server.loadSites();
-    this.logger.log(`Checking for site named ${siteName}`);
-    let site = sites.find((site) => site.name === siteName);
+    this.logger.log(
+      `Checking for site named ${siteName} on server ${server.id}`,
+    );
+    let site = await server.findSite(siteName);
     if (site != null) {
       this.logger.log(`site exists`);
     } else {
@@ -89,30 +136,19 @@ export class DeploymentService {
     await cert.waitUntilReady();
 
     // PlanetScale
-    this.logger.log(`loading database info for PlanetScale`);
-    const orgName = this.configService.getPScaleOrganization();
-    const dbName = this.configService.getPScaleDatabase();
+    const database = await this.getPlanetScaleDatabase();
 
-    this.logger.log(`loading organization "${orgName}" from PlanetScale`);
-    const org = await this.pscaleService.getOrganization(orgName);
-    this.logger.log(
-      `getting database "${dbName}" for organization "${orgName}"`,
-    );
-    const database = await org.getDatabase(dbName);
-
-    this.logger.log(`Getting base branch "${baseDbBranch}"`);
-    const baseBranch = await database.getBranch(baseDbBranch);
-    this.logger.log(
-      `Creating backup "${dbBackupName}" of branch "${baseDbBranch}"`,
-    );
+    this.logger.log(`Getting base branch "${db.base}"`);
+    const baseBranch = await database.getBranch(db.base);
+    this.logger.log(`Creating backup "${dbBackupName}" of branch "${db.base}"`);
     const backup = await baseBranch.ensureBackup(dbBackupName);
     await backup.waitUntilReady();
     this.logger.log(
-      `Forking branch "${dbBranch}" from base branch "${baseDbBranch}"`,
+      `Forking branch "${db.branch}" from base branch "${db.base}"`,
     );
-    const branch = await baseBranch.ensureForkBranch(dbBranch, backup);
+    const branch = await baseBranch.ensureForkBranch(db.branch, backup);
     this.logger.log(
-      `Generating credentials named "preview" for branch "${dbBranch}"`,
+      `Generating credentials named "preview" for branch "${db.branch}"`,
     );
     const dbCreds = await branch.forceCreateCredentials('preview');
 
@@ -171,7 +207,48 @@ export class DeploymentService {
     await project.deploy();
   }
 
-  async destroyPreview() {}
+  async destroyPreview(isMerge: boolean) {
+    const projectName = this.getEnvoyerProjectName();
+    this.logger.log(`Deleting Envoyer project "${projectName}"`);
+    const projects = await this.envoyerService.listProjects();
+    const project = projects.find((project) => project.name === projectName);
+    if (project == null) {
+      this.logger.log(`Project "${projectName}" not found. Skipping.`);
+    } else {
+      await project.delete();
+    }
+
+    // delete forge
+    const server = await this.getForgeServer();
+    const siteName = this.getSiteName();
+    this.logger.log(`Deleting Forge site "${siteName}"`);
+    const site = await server.findSite(siteName);
+    if (site == null) {
+      this.logger.log(`Site "${siteName} not found. Skipping.`);
+    } else {
+      await site.delete();
+    }
+
+    const db = await this.getPlanetScaleDatabase();
+    const branches = this.getDbBranches();
+    this.logger.log(
+      `Retrieving information on database branch ${branches.branch}.`,
+    );
+    const branch = await db.getBranch(branches.branch);
+    if (isMerge) {
+      this.logger.log(
+        `Retrieving information on base branch ${branches.base}.`,
+      );
+      const baseBranch = await db.getBranch(branches.base);
+      this.logger.log(
+        `Creating deployment request in PlanetScale to merge ${branches.branch} into ${branches.base}.`,
+      );
+      await db.requestDeploy(branch, baseBranch);
+    } else {
+      this.logger.log(`Deleting database branch ${branches.branch}.`);
+      await branch.delete();
+    }
+  }
 }
 
 function titleCase(repoName: string): string {

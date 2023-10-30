@@ -9,6 +9,7 @@ import { Database, databaseSchema } from './models/database';
 import { Branch, branchSchema } from './models/branch';
 import { Backup, backupSchema } from './models/backup';
 import { Credentials, credentialsSchema } from './models/credentials';
+import { AGENT_NAME } from '../agent';
 
 export const organizationsResponseSchema = z.object({
   data: z.array(organizationSchema),
@@ -65,6 +66,7 @@ export class PlanetScaleService {
   private config(): AxiosRequestConfig {
     return {
       headers: {
+        'User-Agent': AGENT_NAME,
         Authorization: `${this.tokenId}:${this.token}`,
         accept: 'application/json',
         'content-type': 'application/json',
@@ -147,6 +149,10 @@ export class PlanetScaleService {
     return new Branch(this, db, res);
   }
 
+  public async deleteBranch(branch: Branch): Promise<void> {
+    await this.delete(branch.path);
+  }
+
   public async listBackups(branch: Branch): Promise<Backup[]> {
     const raw = await this.get(`${branch.path}/backups`);
     const res = backupsResponseSchema.parse(raw?.data);
@@ -192,5 +198,17 @@ export class PlanetScaleService {
   ): Promise<Credentials> {
     await this.delete(`${credentials.path}`);
     return this.createCredentials(branch, credentials.name);
+  }
+
+  public async requestDeploy(
+    database: Database,
+    from: Branch,
+    into: Branch,
+  ): Promise<void> {
+    await this.post(`${database.path}/deploy-requests`, {
+      branch: from,
+      into_branch: into,
+      notes: `Initiated via ${AGENT_NAME}`,
+    });
   }
 }

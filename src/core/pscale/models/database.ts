@@ -38,4 +38,8 @@ export class Database {
   createBranch(parent: Branch, name: string, backup?: Backup): Promise<Branch> {
     return this.pscaleService.createBranch(this, parent, name, backup);
   }
+
+  requestDeploy(from: Branch, into: Branch): Promise<void> {
+    return this.pscaleService.requestDeploy(this, from, into);
+  }
 }

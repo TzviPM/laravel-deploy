@@ -33,10 +33,6 @@ export class Server {
   }
 
   pushEnvironment(contents: string): Promise<void> {
-    return this.envoyerService.pushEnvironment(
-      this.project.id,
-      this.id,
-      contents,
-    );
+    return this.envoyerService.pushEnvironment(this.project, this, contents);
   }
 }
