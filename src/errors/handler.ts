@@ -48,8 +48,8 @@ export abstract class ErrorHandler {
       delete error.request.socket;
       delete error.request.agent;
       delete error.request.res;
-      delete error.response.config;
-      delete error.response.request;
+      delete (error.response as any)?.config;
+      delete error.response?.request;
       this.sanitize(error);
     }
     if (error instanceof ZodError) {

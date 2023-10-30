@@ -1,6 +1,6 @@
 {
   "name": "laravel-deploy",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "A GitHub Action to create on-demand preview environments for Laravel apps.",
   "author": "Tzvi Melamed (TzviPM)",
   "private": true,
@@ -52,6 +52,7 @@
     "@types/jest": "^29.5.2",
     "@types/node": "^20.3.1",
     "@types/supertest": "^2.0.12",
+    "@types/uuid": "^9.0.6",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "@vercel/ncc": "^0.38.1",

@@ -17,8 +17,8 @@ async function bootstrap() {
   try {
     await CommandFactory.runApplication(app);
     await app.close();
-  } catch (e) {
-    await errorHandler.handle(e);
+  } catch (e: unknown) {
+    await errorHandler.handle(e as Error);
   }
 }
 bootstrap();

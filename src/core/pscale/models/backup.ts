@@ -24,6 +24,7 @@ export class Backup {
   ) {
     this.id = data.id;
     this.name = data.name;
+    this.state = data.state;
   }
 
   private async refetch() {

@@ -12,8 +12,8 @@ export const credentialsSchema = z.object({
 export class Credentials {
   public id: string;
   public name: string;
-  public username: string;
-  public password: string;
+  public username?: string | null;
+  public password?: string | null;
 
   public get path() {
     return `${this.branch.path}/passwords/${this.id}`;
