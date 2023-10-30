@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.2] - 2023-10-30
+
+### Fixed
+- Fix null values propagating through the code ([#11](https://github.com/TzviPM/laravel-deploy/pull/11)).
+- Use stricter settings in TS Config ([#11](https://github.com/TzviPM/laravel-deploy/pull/11)).
+
 ## [1.2.1] - 2023-10-30
 
 ### Fixed
@@ -52,8 +58,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This was the initial release of `laravel-deploy`.
 
-[unreleased]: https://github.com/TzviPM/laravel-deploy/compare/v1.2.0...HEAD
-[1.1.0]: https://github.com/TzviPM/laravel-deploy/compare/v1.1.0...v1.2.0
+[unreleased]: https://github.com/TzviPM/laravel-deploy/compare/v1.2.2...HEAD
+[1.2.2]: https://github.com/TzviPM/laravel-deploy/compare/v1.2.1...v1.2.2
+[1.2.1]: https://github.com/TzviPM/laravel-deploy/compare/v1.2.0...v1.2.1
+[1.2.0]: https://github.com/TzviPM/laravel-deploy/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/TzviPM/laravel-deploy/compare/v1.0.4...v1.1.0
 [1.0.4]: https://github.com/TzviPM/laravel-deploy/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/TzviPM/laravel-deploy/compare/v1.0.2...v1.0.3
